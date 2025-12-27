@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+
+.ag-theme-quartz.fleet-grid {
+  --ag-font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+  --ag-font-size: 13px;
+
+  --ag-border-color: rgb(226 232 240); /* slate-200 */
+  --ag-row-border-color: rgb(241 245 249); /* slate-100 */
+  --ag-header-background-color: rgb(248 250 252); /* slate-50 */
+  --ag-background-color: white;
+
+  --ag-foreground-color: rgb(15 23 42); /* slate-900 */
+  --ag-secondary-foreground-color: rgb(71 85 105); /* slate-600 */
+
+  --ag-row-hover-color: rgb(248 250 252); /* slate-50 */
+  --ag-selected-row-background-color: rgb(239 246 255); /* blue-50 */
+
+  --ag-header-height: 44px;
+  --ag-row-height: 44px;
+
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgb(226 232 240);
+}
