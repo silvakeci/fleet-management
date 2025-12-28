@@ -47,7 +47,6 @@ function saveUser(user: User | null) {
     if (!user) localStorage.removeItem(STORAGE_KEY);
     else localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
   } catch {
-    // ignore storage errors
   }
 }
 
@@ -75,7 +74,7 @@ const authSlice = createSlice({
         return;
       }
 
-      const { password: _pw, ...safeUser } = match; // strip password
+      const { password: _pw, ...safeUser } = match; 
       state.user = safeUser;
       state.error = null;
       saveUser(safeUser);

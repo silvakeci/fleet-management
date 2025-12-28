@@ -1,104 +1,126 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo } from "react";
 import { AgGridReact } from "ag-grid-react";
-import type {
-  ColDef,
-  GridApi,
-  GridReadyEvent,
-  RowClickedEvent,
-} from "ag-grid-community";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
-
+import type { ColDef, CellClickedEvent } from "ag-grid-community";
 import type { Vehicle } from "../../types/vehicle";
 import StatusBadge from "./StatusBadge";
+import { useAppSelector } from "../../app/hooks"; 
 
 type Props = {
   rowData: Vehicle[];
-  onRowClick: (vehicleId: string) => void;
-  quickFilterText: string;
+  quickFilterText?: string;
+  onRowClick: (id: string) => void;
+  canDelete?: boolean;
+  onDelete?: (id: string) => void;
 };
 
-function VehiclesTableImpl({ rowData, onRowClick, quickFilterText }: Props) {
-  const apiRef = useRef<GridApi | null>(null);
+function VehiclesTableImpl({
+  rowData,
+  quickFilterText,
+  onRowClick,
+  canDelete = false,
+  onDelete,
+}: Props) {
+  const defaultColDef = useMemo<ColDef>(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true,
+    floatingFilter: true,
+    suppressHeaderMenuButton: true,
+  }), []);
 
-  const defaultColDef = useMemo<ColDef>(
-    () => ({
-      sortable: true,
-      filter: true,
-      resizable: true,
-      floatingFilter: true,
-      suppressHeaderMenuButton: true,
-    }),
-    []
-  );
+  const drivers = useAppSelector((s) => s.drivers.items);
+const driverById = useMemo(() => {
+  const m = new Map<string, string>();
+  for (const d of drivers) m.set(d.id, d.name);
+  return m;
+}, [drivers]);
 
-  const colDefs = useMemo<ColDef<Vehicle>[]>(
-    () => [
-      {
-        field: "id",
-        headerName: "Vehicle ID",
-        minWidth: 140,
-        checkboxSelection: true,
-        headerCheckboxSelection: true,
-        cellClass: "font-medium",
-      },
-      { field: "make", headerName: "Make", minWidth: 120 },
+  const colDefs = useMemo<ColDef<Vehicle>[]>(() => {
+    const cols: ColDef<Vehicle>[] = [
+      { field: "id", headerName: "Vehicle ID", minWidth: 130 },
+      { field: "make", headerName: "Make", minWidth: 140 },
       { field: "model", headerName: "Model", minWidth: 140 },
-      { field: "year", headerName: "Year", minWidth: 105, filter: "agNumberColumnFilter" },
+      { field: "year", headerName: "Year", minWidth: 110 },
       { field: "vin", headerName: "VIN", minWidth: 190 },
       {
         field: "status",
         headerName: "Status",
-        minWidth: 160,
+        minWidth: 150,
         cellRenderer: (p: any) => <StatusBadge status={p.value} />,
       },
       {
         field: "currentMileage",
-        headerName: "Mileage",
-        minWidth: 140,
-        filter: "agNumberColumnFilter",
-        valueFormatter: (p) =>
-          typeof p.value === "number" ? p.value.toLocaleString() : p.value,
+        headerName: "Current Mileage",
+        minWidth: 160,
+        valueFormatter: (p) => `${Number(p.value).toLocaleString()} km`,
       },
-      { field: "lastServiceDate", headerName: "Last Service", minWidth: 160 },
+      { field: "lastServiceDate", headerName: "Last Service Date", minWidth: 160 },
+      
       {
-        field: "assignedDriverName",
+        field:'assignedDriverName',
         headerName: "Assigned Driver",
-        minWidth: 190,
-        valueGetter: (p) => p.data?.assignedDriverName ?? "Unassigned",
-      },
-    ],
-    []
-  );
+        minWidth: 170,
+        valueGetter: (p) => {
+          const id = p.data?.assignedDriverId;
+          if (!id) return "Unassigned";
+          return driverById.get(id) ?? "Unassigned";
+        },
+      }
+    ];
 
-  const onGridReady = (e: GridReadyEvent) => {
-    apiRef.current = e.api;
-    e.api.setGridOption("quickFilterText", quickFilterText);
-  };
+    if (canDelete) {
+      cols.unshift({
+        headerName: "",
+        colId: "actions",          
+        width: 90,
+        pinned: "left",
+        sortable: false,
+        filter: false,
+        resizable: false,
+        cellClass: "cursor-default",
+        cellRenderer: (p: any) => {
+          const id: string | undefined = p.data?.id;
+          if (!id) return null;
 
-  // keep quick filter synced without rerendering columns
-  if (apiRef.current) {
-    apiRef.current.setGridOption("quickFilterText", quickFilterText);
-  }
+          return (
+            <button
+              type="button"
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg border bg-white hover:bg-slate-50 text-rose-700 border-rose-200"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation(); 
+                onDelete?.(id);
+              }}
+              title="Delete vehicle"
+            >
+              Delete
+            </button>
+          );
+        },
+      });
+    }
 
-  const onRowClicked = (e: RowClickedEvent<Vehicle>) => {
-    if (e.data?.id) onRowClick(e.data.id);
+    return cols;
+  }, [canDelete, onDelete]);
+
+  const onCellClicked = (e: CellClickedEvent<Vehicle>) => {
+    if (e.column.getColId() === "actions") return;
+    if (!e.data) return;
+    onRowClick(e.data.id);
   };
 
   return (
-    <div className="ag-theme-quartz fleet-grid w-full" style={{ height: 660 }}>
+    <div className="ag-theme-quartz w-full" style={{ height: 680 }}>
       <AgGridReact<Vehicle>
         rowData={rowData}
         columnDefs={colDefs}
         defaultColDef={defaultColDef}
-        onGridReady={onGridReady}
-        onRowClicked={onRowClicked}
-        rowSelection="multiple"
-        pagination={true}
+        pagination
         paginationPageSize={25}
         paginationPageSizeSelector={[25, 50, 100]}
-        animateRows={false}
-        suppressCellFocus={true}
+        quickFilterText={quickFilterText}
+        suppressCellFocus
+        onCellClicked={onCellClicked}   
       />
     </div>
   );

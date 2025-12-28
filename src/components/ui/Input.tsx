@@ -1,4 +1,3 @@
-// src/components/ui/Input.tsx
 import { useState } from "react";
 import type { InputHTMLAttributes } from "react";
 import { clsx } from "clsx";
@@ -37,7 +36,6 @@ export default function Input({
             error
               ? "border-red-300 focus:ring-red-500 focus:border-red-500"
               : "border-gray-300",
-            // ✅ IMPORTANT: use ternary so TS never sees `false`
             canTogglePassword ? "pr-14" : undefined,
             className
           )}

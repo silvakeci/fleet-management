@@ -30,7 +30,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center  from-slate-50 to-slate-100 px-4">
       <div className="w-full max-w-md">
-        {/* Brand */}
         <div className="text-center mb-8">
           <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-black text-white flex items-center justify-center text-xl font-bold">
             FM
@@ -41,8 +40,7 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500">Sign in to your dashboard</p>
         </div>
 
-        {/* Card */}
-        <Card className="p-6 space-y-5">
+=        <Card className="p-6 space-y-5">
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}

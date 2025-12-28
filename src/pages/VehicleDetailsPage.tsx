@@ -17,19 +17,16 @@ export default function VehicleDetailsPage() {
   const { vehicleId } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-
   const role = useAppSelector((s) => s.auth.user?.role);
   const canEdit = role === "ADMIN" || role === "FLEET_MANAGER";
-
   const { items, status } = useAppSelector((s) => s.vehicles);
+  const vehicle = useMemo(() => items.find((v) => v.id === vehicleId), [items, vehicleId]);
+  const details = useVehicleDetails(vehicle);
 
   useEffect(() => {
     if (status === "idle") dispatch(fetchVehicles());
   }, [dispatch, status]);
 
-  const vehicle = useMemo(() => items.find((v) => v.id === vehicleId), [items, vehicleId]);
-
-  const details = useVehicleDetails(vehicle);
 
   if (status === "loading" || status === "idle") {
     return (
@@ -68,18 +65,14 @@ export default function VehicleDetailsPage() {
         onBack={() => navigate("/vehicles")}
         onEdit={() => navigate(`/vehicles/${vehicle.id}/edit`)}
       />
-
       <BasicInfoCard vehicle={vehicle} specs={details.specs} />
-
       <MaintenanceHistoryCard
         maintenance={details.maintenance}
         filtered={details.filteredMaintenance}
         filters={details.filters}
         actions={details.actions}
       />
-
       <FuelAnalyticsCard analytics={details.analytics} />
-
       <AssignmentHistoryCard assignments={details.assignments} />
     </div>
   );

@@ -11,28 +11,23 @@ import RequiredFieldsSection from "../features/vehicles/form/components/Required
 import OptionalFieldsSection from "../features/vehicles/form/components/OptionalFieldsSection";
 import VehicleFormSkeleton from "../features/vehicles/form/components/VehicleFormSkeleton";
 import NotFoundState from "../features/vehicles/form/components/NotFoundState";
-
 import { useVehicleForm } from "../features/vehicles/form/hooks/useVehicleForm";
 
 export default function VehicleFormPage() {
   const { vehicleId } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-
   const role = useAppSelector((s) => s.auth.user?.role);
   const canCreate = role === "ADMIN";
   const canEdit = role === "ADMIN" || role === "FLEET_MANAGER";
-
   const { items, status, saveStatus, saveError } = useAppSelector((s) => s.vehicles);
 
   const mode: Mode = vehicleId ? "edit" : "create";
 
-  // ensure vehicles loaded
   useEffect(() => {
     if (status === "idle") dispatch(fetchVehicles());
   }, [dispatch, status]);
 
-  // permission guard
   useEffect(() => {
     if (mode === "create" && !canCreate) navigate("/vehicles", { replace: true });
     if (mode === "edit" && !canEdit) navigate("/vehicles", { replace: true });

@@ -1,134 +1,109 @@
 import type { Vehicle } from "../../types/vehicle";
-import { getAssignmentHistory, getMaintenanceHistory } from "../vehicles/vehicleDetailsMock";
+import { getVehicleAssignmentHistory } from "../vehicles/vehicleDetails/mock/getVehicleAssignmentHistory";
 
-function daysBetween(a: string, b: string) {
-  const da = new Date(a + "T00:00:00").getTime();
-  const db = new Date(b + "T00:00:00").getTime();
-  return Math.floor((db - da) / (1000 * 60 * 60 * 24));
+function vehicleLabel(v: Vehicle) {
+  return `${v.make} ${v.model} · ${v.id}`;
 }
 
-function addDays(date: string, days: number) {
-  const d = new Date(date + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export type DashboardData = {
-  total: number;
-  active: number;
-  maint: number;
-  retired: number;
-  dueSoon: Vehicle[];
-  overdue: Vehicle[];
-
-  totalMileage: number;
-  avgAge: number;
-  monthlyMaintenanceCost: number;
-
-  lastAdded: Vehicle[];
-  recentMaintenance: Array<{
-    id: string;
-    vehicleId: string;
-    make: string;
-    model: string;
-    date: string;
-    serviceType: string;
-    mileageAtService: number;
-    cost: number;
-  }>;
-  recentAssignments: Array<{
-    id: string;
-    vehicleId: string;
-    make: string;
-    model: string;
-    driverName: string;
-    from: string;
-    to?: string;
-  }>;
+export type RecentAssignment = {
+  vehicleId: string;
+  vehicleLabel: string;
+  driverName: string;
+  date: string; 
 };
 
-export function computeDashboardData(items: Vehicle[]): DashboardData {
-  const total = items.length;
-  const active = items.filter((v) => v.status === "ACTIVE").length;
-  const maint = items.filter((v) => v.status === "MAINTENANCE").length;
-  const retired = items.filter((v) => v.status === "RETIRED").length;
+export type DashboardData = {
+  totalVehicles: number;
+  activeVehicles: number;
+  maintenanceVehicles: number;
+  retiredVehicles: number;
 
-  // maintenance due logic
-  const SERVICE_INTERVAL_DAYS = 180;
-  const DUE_SOON_WINDOW_DAYS = 30;
-  const today = todayISO();
+  vehiclesServiceSoon: number;  
+  overdueMaintenance: number;    
 
-  const dueSoon: Vehicle[] = [];
-  const overdue: Vehicle[] = [];
+  totalFleetMileage: number;
+  averageVehicleAge: number;
+  monthlyMaintenanceCost: number;
 
-  for (const v of items) {
-    const dueDate = addDays(v.lastServiceDate, SERVICE_INTERVAL_DAYS);
-    const daysUntil = daysBetween(today, dueDate);
-    if (daysUntil < 0) overdue.push(v);
-    else if (daysUntil <= DUE_SOON_WINDOW_DAYS) dueSoon.push(v);
-  }
+  last5VehiclesAdded: Vehicle[];
+  recentAssignments: RecentAssignment[];
+};
 
-  // quick stats
-  const totalMileage = items.reduce((sum, v) => sum + (v.currentMileage || 0), 0);
-  const avgAge =
-    total === 0
+export function computeDashboardData(vehicles: Vehicle[]): DashboardData {
+  const nowYear = new Date().getFullYear();
+
+  const totalVehicles = vehicles.length;
+  const activeVehicles = vehicles.filter((v) => v.status === "ACTIVE").length;
+  const maintenanceVehicles = vehicles.filter((v) => v.status === "MAINTENANCE").length;
+  const retiredVehicles = vehicles.filter((v) => v.status === "RETIRED").length;
+
+  const daysSinceService = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const t = new Date(dateStr).getTime();
+    if (Number.isNaN(t)) return null;
+    const days = (Date.now() - t) / (1000 * 60 * 60 * 24);
+    return Math.floor(days);
+  };
+
+  const vehiclesServiceSoon = vehicles.filter((v) => {
+    const days = daysSinceService(v.lastServiceDate);
+    if (days === null) return false;
+    return days >= 335 && days < 365;
+  }).length;
+
+  const overdueMaintenance = vehicles.filter((v) => {
+    const days = daysSinceService(v.lastServiceDate);
+    if (days === null) return false;
+    return days >= 365;
+  }).length;
+
+  const totalFleetMileage = vehicles.reduce((acc, v) => acc + (v.currentMileage ?? 0), 0);
+
+  const averageVehicleAge =
+    vehicles.length === 0
       ? 0
-      : Math.round(
-          (items.reduce((sum, v) => sum + (new Date().getFullYear() - v.year), 0) / total) * 10
-        ) / 10;
+      : vehicles.reduce((acc, v) => acc + Math.max(0, nowYear - v.year), 0) / vehicles.length;
 
-  const last30 = 30;
-  const monthlyMaintenanceCost = items.reduce((sum, v) => {
-    const records = getMaintenanceHistory(v);
-    const recent = records.filter((r) => daysBetween(r.date, today) <= last30);
-    return sum + recent.reduce((s, r) => s + r.cost, 0);
-  }, 0);
+  const monthlyMaintenanceCost = 12000 + (totalVehicles % 13) * 380;
 
-  // recent activity
-  const lastAdded = [...items]
-    .sort((a, b) => (Number(b.id.replace(/\D/g, "")) || 0) - (Number(a.id.replace(/\D/g, "")) || 0))
+  const last5VehiclesAdded = [...vehicles]
+    .sort((a, b) => b.id.localeCompare(a.id))
     .slice(0, 5);
 
-  const recentMaintenance = items
-    .flatMap((v) =>
-      getMaintenanceHistory(v).map((r) => ({
+  const recentAssignments: RecentAssignment[] = (() => {
+    const all: RecentAssignment[] = [];
+
+    for (const v of vehicles) {
+      const hist = getVehicleAssignmentHistory(v);
+      const latest = hist[0]; 
+      if (!latest) continue;
+
+      all.push({
         vehicleId: v.id,
-        make: v.make,
-        model: v.model,
-        ...r,
-      }))
-    )
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5);
+        vehicleLabel: vehicleLabel(v),
+        driverName: latest.driverName,
+        date: latest.from,
+      });
+    }
 
-  const recentAssignments = items
-    .flatMap((v) =>
-      getAssignmentHistory(v).map((a) => ({
-        vehicleId: v.id,
-        make: v.make,
-        model: v.model,
-        ...a,
-      }))
-    )
-    .sort((a, b) => (b.from ?? "").localeCompare(a.from ?? ""))
-    .slice(0, 5);
+    all.sort((a, b) => b.date.localeCompare(a.date));
+    return all.slice(0, 5);
+  })();
 
   return {
-    total,
-    active,
-    maint,
-    retired,
-    dueSoon,
-    overdue,
-    totalMileage,
-    avgAge,
+    totalVehicles,
+    activeVehicles,
+    maintenanceVehicles,
+    retiredVehicles,
+
+    vehiclesServiceSoon,
+    overdueMaintenance,
+
+    totalFleetMileage,
+    averageVehicleAge,
     monthlyMaintenanceCost,
-    lastAdded,
-    recentMaintenance,
+
+    last5VehiclesAdded,
     recentAssignments,
   };
 }

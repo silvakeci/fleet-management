@@ -1,60 +1,39 @@
-import type { Vehicle, VehicleStatus } from "../../types/vehicle";
-
-const MAKES = ["Ford", "Toyota", "Mercedes", "Volkswagen", "Renault", "Nissan"];
-
-const MODELS: Record<string, string[]> = {
-  Ford: ["Transit", "Ranger", "Focus"],
-  Toyota: ["Camry", "Hilux", "Corolla"],
-  Mercedes: ["Sprinter", "Vito"],
-  Volkswagen: ["Transporter", "Caddy"],
-  Renault: ["Trafic", "Kangoo"],
-  Nissan: ["Navara", "NV200"],
-};
-
-const COLORS = ["White", "Black", "Silver", "Blue", "Red", "Gray"];
-
-function randomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomFrom<T>(arr: T[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function isoDateDaysAgo(daysAgo: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
-}
-
-function makeVin(i: number) {
-  // fake VIN-like 17 chars (alphanumeric)
-  const base = `FLEET${String(i).padStart(12, "0")}`;
-  return base.slice(0, 17);
-}
-
-function statusFrom(i: number): VehicleStatus {
-  const mod = i % 12;
-  if (mod === 0) return "RETIRED";
-  if (mod <= 2) return "MAINTENANCE";
-  return "ACTIVE";
-}
+import type { Vehicle } from "../../types/vehicle";
+import { DRIVER_SEED } from "../drivers/mockDrivers";
+import { MAKES, MODELS, COLORS } from "../../mocks/vehicles/vehicleConstants";
+import { randomInt, randomFrom } from "../../utils/random";
+import { isoDateDaysAgo } from "../../utils/dates";
+import { makeVin, statusFrom } from "../../utils/vehicle";
 
 export async function fetchVehiclesApi(): Promise<Vehicle[]> {
   await new Promise((r) => setTimeout(r, 600));
+
+  const activeDrivers = DRIVER_SEED.filter((d) => d.status === "ACTIVE");
+  const availableDriverPool = [...activeDrivers]; 
 
   const vehicles: Vehicle[] = Array.from({ length: 360 }).map((_, idx) => {
     const i = idx + 1;
 
     const make = randomFrom(MAKES);
     const model = randomFrom(MODELS[make]);
+
     const year = randomInt(2012, 2025);
     const currentMileage = randomInt(10_000, 240_000);
     const status = statusFrom(i);
     const lastServiceDate = isoDateDaysAgo(randomInt(10, 220));
 
-    const assignedDriverName =
-      i % 5 === 0 ? undefined : `Driver ${String((i % 40) + 1).padStart(2, "0")}`;
+    let assignedDriverId: string | undefined;
+    let assignedDriverName: string | undefined;
+
+    if (i % 3 !== 0 && availableDriverPool.length > 0) {
+      const driver = availableDriverPool.splice(
+        randomInt(0, availableDriverPool.length - 1),
+        1
+      )[0];
+
+      assignedDriverId = driver.id;
+      assignedDriverName = driver.name;
+    }
 
     return {
       id: `V-${String(i).padStart(4, "0")}`,
@@ -75,6 +54,7 @@ export async function fetchVehiclesApi(): Promise<Vehicle[]> {
       purchasePrice: 18_000 + (i % 20_000),
       notes: i % 7 === 0 ? "Minor cosmetic wear on interior." : undefined,
 
+      assignedDriverId,
       assignedDriverName,
     };
   });

@@ -21,16 +21,13 @@ export function useVehicleForm({
   const autosaveKey = mode === "edit" ? `fleet.vehicle.form.${vehicleId}` : `fleet.vehicle.form.new`;
 
   const initial: Vehicle = useMemo(() => {
-    // 1) draft
     try {
       const raw = localStorage.getItem(autosaveKey);
       if (raw) return JSON.parse(raw) as Vehicle;
     } catch {}
 
-    // 2) edit existing
     if (mode === "edit" && existing) return existing;
 
-    // 3) create new
     const id = makeNewId(items.map((v) => v.id));
     const today = new Date().toISOString().slice(0, 10);
 
@@ -68,12 +65,10 @@ export function useVehicleForm({
     setTouched((t) => ({ ...t, [String(key)]: true }));
   };
 
-  // dirty tracking
   useEffect(() => {
     dirtyRef.current = true;
   }, [form]);
 
-  // autosave (debounced)
   useEffect(() => {
     const t = window.setTimeout(() => {
       try {
@@ -83,7 +78,6 @@ export function useVehicleForm({
     return () => window.clearTimeout(t);
   }, [form, autosaveKey]);
 
-  // before unload warning
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!dirtyRef.current) return;
@@ -101,7 +95,6 @@ export function useVehicleForm({
     return touched[String(key)] ? errors[String(key)] : undefined;
   };
 
-  // save success effect
   useEffect(() => {
     if (saveStatus === "saved") {
       dirtyRef.current = false;

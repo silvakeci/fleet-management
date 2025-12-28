@@ -1,14 +1,22 @@
 import { Card } from "../../../../components/ui";
 import SectionTitle from "./SectionTitle";
 import EmptyState from "./EmptyState";
-import type { AssignmentRecord } from "../../../../types/vehicleDetails";
+import type { DriverAssignmentHistoryItem } from "../../../../types/driver";
 
-export default function AssignmentHistoryCard({ assignments }: { assignments: AssignmentRecord[] }) {
+export default function AssignmentHistoryCard({
+  assignments,
+}: {
+  assignments: DriverAssignmentHistoryItem[];
+}) {
   return (
     <Card className="p-6 space-y-4">
       <SectionTitle title="Assignment History" />
+
       {assignments.length === 0 ? (
-        <EmptyState title="No assignment history" hint="This vehicle has not been assigned to any driver yet." />
+        <EmptyState
+          title="No assignment history"
+          hint="This vehicle has not been assigned to any driver yet."
+        />
       ) : (
         <div className="space-y-3">
           {assignments.map((a) => {
@@ -21,7 +29,7 @@ export default function AssignmentHistoryCard({ assignments }: { assignments: As
                 }`}
               >
                 <div>
-                  <div className="font-semibold">{a.driverName}</div>
+                  <div className="font-semibold">{a.vehicleLabel}</div>
                   <div className="text-sm text-slate-500">
                     {a.from} → {a.to ?? "Present"}
                   </div>
