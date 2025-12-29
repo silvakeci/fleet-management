@@ -6,11 +6,14 @@ import { logout } from "../features/auth/authSlice";
 const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-2 rounded ${isActive ? "bg-gray-200" : "hover:bg-gray-100"}`;
 
+
 export default function AppLayout() {
     const user = useAppSelector((s) => s.auth.user);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-
+    const role = useAppSelector((s) => s.auth.user?.role);
+    const noMaintenance = role === "FLEET_MANAGER";
+    const noReports = role ===  "DRIVER";
     return (
         <div className="min-h-screen">
             <header className="border-b">
@@ -19,11 +22,19 @@ export default function AppLayout() {
                         <div className="font-semibold">Fleet Management</div>
 
                         <nav className="flex gap-2 text-sm">
+
                             <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
+                        
                             <NavLink to="/vehicles" className={linkClass}>Vehicles</NavLink>
+                            
                             <NavLink to="/drivers" className={linkClass}>Drivers</NavLink>
-                            <NavLink to="/maintenance" className={linkClass}>Maintenance</NavLink>
-                            <NavLink to="/reports" className={linkClass}>Reports</NavLink>
+                            {!noMaintenance && (
+                                <NavLink to="/maintenance" className={linkClass}>Maintenance</NavLink>
+                            )}
+                            {!noReports &&
+                                (<NavLink to="/reports" className={linkClass}>Reports</NavLink>)
+                            }
+                            
                         </nav>
                     </div>
 

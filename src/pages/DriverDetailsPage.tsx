@@ -23,7 +23,8 @@ export default function DriverDetailsPage() {
 
     const drivers = useAppSelector((s) => s.drivers);
     const vehiclesState = useAppSelector((s) => s.vehicles);
-
+    const role = useAppSelector((s) => s.auth.user?.role);
+    const noAssigne= role ===  "DRIVER";
     useEffect(() => {
         if (vehiclesState.status === "idle") dispatch(fetchVehicles());
     }, [dispatch, vehiclesState.status]);
@@ -99,9 +100,12 @@ export default function DriverDetailsPage() {
 
                 <div className="flex gap-2">
                     <Button variant="secondary" onClick={() => navigate("/drivers")}>Back</Button>
-                    <Button onClick={() => navigate(`/assignments?driverId=${driver.id}`)}>
+                    {!noAssigne && (
+                          <Button onClick={() => navigate(`/assignments?driverId=${driver.id}`)}>
                         Assign Vehicle
                     </Button>
+                    )}
+                  
 
                 </div>
             </div>

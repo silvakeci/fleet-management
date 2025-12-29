@@ -18,7 +18,7 @@ export default function VehicleDetailsPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const role = useAppSelector((s) => s.auth.user?.role);
-  const canEdit = role === "ADMIN" || role === "FLEET_MANAGER";
+  const canEdit = role === "ADMIN" ;
   const { items, status } = useAppSelector((s) => s.vehicles);
   const vehicle = useMemo(() => items.find((v) => v.id === vehicleId), [items, vehicleId]);
   const details = useVehicleDetails(vehicle);

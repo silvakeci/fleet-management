@@ -12,7 +12,8 @@ const DriversTable = lazy(() => import("../features/drivers/components/DriversTa
 export default function DriversPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-
+  const role = useAppSelector((s) => s.auth.user?.role);
+  const noAssigne = role === "DRIVER";
   const drivers = useAppSelector((s) => s.drivers);
   const vehiclesState = useAppSelector((s) => s.vehicles);
 
@@ -69,10 +70,13 @@ export default function DriversPage() {
             >
               Refresh
             </Button>
+            {!noAssigne && (
+              <Button onClick={() => navigate("/assignments")}>
+                Assign Vehicles
+              </Button>
+            )
+            }
 
-            <Button onClick={() => navigate("/assignments")}>
-              Assign Vehicles
-            </Button>
           </div>
         }
       />

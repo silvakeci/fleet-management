@@ -18,6 +18,9 @@ export default function MaintenanceSchedulePage() {
 
   const [filter, setFilter] = useState<ScheduleFilter>("ALL");
   const [sortBy, setSortBy] = useState<"DATE" | "VEHICLE">("DATE");
+  const role = useAppSelector((s) => s.auth.user?.role);
+  const noLog = role === "DRIVER" || role === "FLEET_MANAGER";
+
 
   useEffect(() => {
     if (vehiclesState.status === "idle") dispatch(fetchVehicles());
@@ -59,7 +62,12 @@ export default function MaintenanceSchedulePage() {
             >
               Refresh
             </Button>
-            <Button onClick={() => navigate("/maintenance/new")}>Log Maintenance</Button>
+            {
+              !noLog && (
+                <Button onClick={() => navigate("/maintenance/new")}>Log Maintenance</Button>
+              )
+            }
+
           </div>
         }
       />

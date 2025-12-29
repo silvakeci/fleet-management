@@ -59,6 +59,7 @@ export default function MaintenanceCreatePage() {
 
   const role = useAppSelector((s) => s.auth.user?.role);
   const canCreate = role === "ADMIN" || role === "FLEET_MANAGER";
+  const noLog = role === "DRIVER";
 
   useEffect(() => {
     if (!canCreate) navigate("/maintenance", { replace: true });
@@ -79,7 +80,6 @@ export default function MaintenanceCreatePage() {
   const [technician, setTechnician] = useState("");
   const [notes, setNotes] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-
   const vehicle = useMemo(
     () => vehiclesState.items.find((v) => v.id === vehicleId),
     [vehiclesState.items, vehicleId]
@@ -137,6 +137,7 @@ export default function MaintenanceCreatePage() {
 
     dispatch(createMaintenance(record));
   };
+
 
   return (
     <div className="space-y-5">
