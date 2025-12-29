@@ -59,7 +59,6 @@ export default function MaintenanceCreatePage() {
 
   const role = useAppSelector((s) => s.auth.user?.role);
   const canCreate = role === "ADMIN" || role === "FLEET_MANAGER";
-  const noLog = role === "DRIVER";
 
   useEffect(() => {
     if (!canCreate) navigate("/maintenance", { replace: true });

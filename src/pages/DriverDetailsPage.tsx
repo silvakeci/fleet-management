@@ -5,7 +5,7 @@ import { Button, Card } from "../components/ui";
 import DriverStatusBadge from "../features/drivers/components/DriverStatusBadge";
 import { fetchDrivers } from "../features/drivers/driversSlice";
 import { fetchVehicles } from "../features/vehicles/vehiclesSlice";
-import type { DriverMetrics, DriverAssignmentHistoryItem } from "../types/driver";
+import type { DriverMetrics } from "../types/driver";
 
 function mockMetrics(driverId: string): DriverMetrics {
     const seed = Number(driverId.replace(/\D/g, "")) || 7;
@@ -49,21 +49,6 @@ export default function DriverDetailsPage() {
         return driver.assignedVehicleIds
             .map((id) => vehiclesById[id])
             .filter(Boolean);
-    }, [driver, vehiclesById]);
-
-    const history = useMemo<DriverAssignmentHistoryItem[]>(() => {
-        if (!driver) return [];
-        return driver.assignedVehicleIds.map((vid, idx) => {
-            const v = vehiclesById[vid];
-            const from = v?.lastServiceDate ?? "2025-01-01";
-            return {
-                id: `${driver.id}-${vid}-${idx}`,
-                vehicleId: vid,
-                vehicleLabel: v ? `${v.make} ${v.model} · ${vid}` : vid,
-                from,
-                to: undefined,
-            };
-        });
     }, [driver, vehiclesById]);
 
     const metrics = useMemo(() => (driver ? mockMetrics(driver.id) : null), [driver]);
@@ -158,30 +143,6 @@ export default function DriverDetailsPage() {
                     </div>
                 )}
             </Card>
-
-            <Card className="p-6 space-y-3">
-                <div className="text-lg font-semibold">Assignment History</div>
-                {history.length === 0 ? (
-                    <div className="text-sm text-slate-500">No assignment history.</div>
-                ) : (
-                    <div className="space-y-2">
-                        {history.map((h) => (
-                            <div key={h.id} className="rounded-xl border p-4 flex items-center justify-between">
-                                <div>
-                                    <div className="font-semibold">{h.vehicleLabel}</div>
-                                    <div className="text-sm text-slate-500">{h.from} → {h.to ?? "Present"}</div>
-                                </div>
-                                {!h.to ? (
-                                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
-                                        Current
-                                    </span>
-                                ) : null}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </Card>
-
             {metrics && (
                 <Card className="p-6 space-y-3">
                     <div className="text-lg font-semibold">Performance Metrics (Mock)</div>

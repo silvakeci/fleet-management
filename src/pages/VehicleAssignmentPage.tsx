@@ -91,10 +91,13 @@ export default function VehicleAssignmentPage() {
 
   useEffect(() => {
     if (driversState.assignStatus === "saved") {
+      if (driversState.lastAssignAction === "ASSIGN") {
+        alert("Assignment saved ✅");
+      }
       dispatch(clearAssignState());
-      alert("Assignment saved ✅");
     }
-  }, [driversState.assignStatus, dispatch]);
+  }, [driversState.assignStatus, driversState.lastAssignAction, dispatch]);
+  
 
   const onAssign = () => {
     if (!canSubmit || !selectedDriver) return;
