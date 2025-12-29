@@ -100,11 +100,7 @@ const vehiclesSlice = createSlice({
       }
     },
 
-    /**
-     * ✅ Optional helper:
-     * If you enforce "one vehicle per driver", use this to remove existing assignments
-     * when reassigning.
-     */
+
     unassignVehicleFromDriver(
       state,
       action: PayloadAction<{ driverId: string }>

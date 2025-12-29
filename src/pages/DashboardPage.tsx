@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { fetchVehicles } from "../features/vehicles/vehiclesSlice";
 import { Card } from "../components/ui";
 
+import { bootstrapAppData } from "../app/appBootstrap";
 import { computeDashboardData } from "../features/dashboard/dashboardSelectors";
+
 import SummaryCards from "../features/dashboard/components/SummaryCards";
 import QuickStats from "../features/dashboard/components/QuickStats";
 import RecentActivity from "../features/dashboard/components/RecentActivity";
@@ -13,15 +14,23 @@ import AlertsPanel from "../features/dashboard/components/AlertsPanel";
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, status } = useAppSelector((s) => s.vehicles);
+
+  const vehiclesState = useAppSelector((s) => s.vehicles);
 
   useEffect(() => {
-    if (status === "idle") dispatch(fetchVehicles());
-  }, [dispatch, status]);
+    dispatch(bootstrapAppData());
+  }, [dispatch]);
 
-  const data = useMemo(() => computeDashboardData(items), [items]);
+  const vehicles = useAppSelector((s) => s.vehicles.items);
+const drivers = useAppSelector((s) => s.drivers.items);
+const maintenance = useAppSelector((s) => s.maintenance.items);
 
-  if (status === "loading" || status === "idle") {
+const data = useMemo(
+  () => computeDashboardData(vehicles, drivers, maintenance),
+  [vehicles, drivers, maintenance]
+);
+
+  if (vehiclesState.status === "loading" || vehiclesState.status === "idle") {
     return (
       <div className="space-y-4">
         <div className="h-7 w-56 bg-slate-200 rounded animate-pulse" />
@@ -33,6 +42,15 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+    );
+  }
+
+  if (vehiclesState.status === "failed") {
+    return (
+      <Card className="p-6 border-rose-200 bg-rose-50">
+        <div className="font-semibold text-rose-900">Failed to load app data</div>
+        <div className="text-sm text-rose-800 mt-1">{vehiclesState.error}</div>
+      </Card>
     );
   }
 

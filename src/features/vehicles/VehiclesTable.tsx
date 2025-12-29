@@ -1,9 +1,9 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useCallback } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, CellClickedEvent } from "ag-grid-community";
 import type { Vehicle } from "../../types/vehicle";
 import StatusBadge from "./StatusBadge";
-import { useAppSelector } from "../../app/hooks"; 
+import { useAppSelector } from "../../app/hooks";
 
 type Props = {
   rowData: Vehicle[];
@@ -20,20 +20,24 @@ function VehiclesTableImpl({
   canDelete = false,
   onDelete,
 }: Props) {
-  const defaultColDef = useMemo<ColDef>(() => ({
-    sortable: true,
-    filter: true,
-    resizable: true,
-    floatingFilter: true,
-    suppressHeaderMenuButton: true,
-  }), []);
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      sortable: true,
+      filter: true,
+      resizable: true,
+      floatingFilter: true,
+      suppressHeaderMenuButton: true,
+    }),
+    []
+  );
 
   const drivers = useAppSelector((s) => s.drivers.items);
-const driverById = useMemo(() => {
-  const m = new Map<string, string>();
-  for (const d of drivers) m.set(d.id, d.name);
-  return m;
-}, [drivers]);
+
+  const driverById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of drivers) map.set(d.id, d.name);
+    return map;
+  }, [drivers]);
 
   const colDefs = useMemo<ColDef<Vehicle>[]>(() => {
     const cols: ColDef<Vehicle>[] = [
@@ -54,10 +58,12 @@ const driverById = useMemo(() => {
         minWidth: 160,
         valueFormatter: (p) => `${Number(p.value).toLocaleString()} km`,
       },
-      { field: "lastServiceDate", headerName: "Last Service Date", minWidth: 160 },
-      
       {
-        field:'assignedDriverName',
+        field: "lastServiceDate",
+        headerName: "Last Service Date",
+        minWidth: 160,
+      },
+      {
         headerName: "Assigned Driver",
         minWidth: 170,
         valueGetter: (p) => {
@@ -65,21 +71,21 @@ const driverById = useMemo(() => {
           if (!id) return "Unassigned";
           return driverById.get(id) ?? "Unassigned";
         },
-      }
+      },
     ];
 
     if (canDelete) {
       cols.unshift({
         headerName: "",
-        colId: "actions",          
+        colId: "actions",
         width: 90,
-        pinned: "left",
+        pinned: "right",
         sortable: false,
         filter: false,
         resizable: false,
         cellClass: "cursor-default",
         cellRenderer: (p: any) => {
-          const id: string | undefined = p.data?.id;
+          const id = p.data?.id;
           if (!id) return null;
 
           return (
@@ -88,10 +94,9 @@ const driverById = useMemo(() => {
               className="text-xs font-semibold px-2.5 py-1 rounded-lg border bg-white hover:bg-slate-50 text-rose-700 border-rose-200"
               onClick={(e) => {
                 e.preventDefault();
-                e.stopPropagation(); 
+                e.stopPropagation();
                 onDelete?.(id);
               }}
-              title="Delete vehicle"
             >
               Delete
             </button>
@@ -101,13 +106,16 @@ const driverById = useMemo(() => {
     }
 
     return cols;
-  }, [canDelete, onDelete]);
+  }, [canDelete, onDelete, driverById]);
 
-  const onCellClicked = (e: CellClickedEvent<Vehicle>) => {
-    if (e.column.getColId() === "actions") return;
-    if (!e.data) return;
-    onRowClick(e.data.id);
-  };
+  const onCellClicked = useCallback(
+    (e: CellClickedEvent<Vehicle>) => {
+      if (e.column.getColId() === "actions") return;
+      if (!e.data) return;
+      onRowClick(e.data.id);
+    },
+    [onRowClick]
+  );
 
   return (
     <div className="ag-theme-quartz w-full" style={{ height: 680 }}>
@@ -115,12 +123,13 @@ const driverById = useMemo(() => {
         rowData={rowData}
         columnDefs={colDefs}
         defaultColDef={defaultColDef}
+        rowHeight={35}   
         pagination
         paginationPageSize={25}
         paginationPageSizeSelector={[25, 50, 100]}
         quickFilterText={quickFilterText}
         suppressCellFocus
-        onCellClicked={onCellClicked}   
+        onCellClicked={onCellClicked}
       />
     </div>
   );

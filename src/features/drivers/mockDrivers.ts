@@ -1,9 +1,8 @@
 import type { Driver } from "../../types/driver";
 
-export const DRIVER_SEED: Array<Pick<
-  Driver,
-  "id" | "name" | "licenseNumber" | "phone" | "email" | "status"
->> = [
+export const DRIVER_SEED: Array<
+  Pick<Driver, "id" | "name" | "licenseNumber" | "phone" | "email" | "status">
+> = [
   {
     id: "D-0001",
     name: "Alex Carter",
@@ -50,6 +49,54 @@ export const DRIVER_SEED: Array<Pick<
     licenseNumber: "LIC-100006",
     phone: "+355 690 106 206",
     email: "olivia.taylor@fleetco.test",
+    status: "ACTIVE",
+  },
+  {
+    id: "D-0007",
+    name: "Ethan Miller",
+    licenseNumber: "LIC-100007",
+    phone: "+355 690 107 207",
+    email: "ethan.miller@fleetco.test",
+    status: "ACTIVE",
+  },
+  {
+    id: "D-0008",
+    name: "Sophia Anderson",
+    licenseNumber: "LIC-100008",
+    phone: "+355 690 108 208",
+    email: "sophia.anderson@fleetco.test",
+    status: "ACTIVE",
+  },
+  {
+    id: "D-0009",
+    name: "James Martinez",
+    licenseNumber: "LIC-100009",
+    phone: "+355 690 109 209",
+    email: "james.martinez@fleetco.test",
+    status: "ACTIVE",
+  },
+  {
+    id: "D-0010",
+    name: "Isabella Garcia",
+    licenseNumber: "LIC-100010",
+    phone: "+355 690 110 210",
+    email: "isabella.garcia@fleetco.test",
+    status: "ACTIVE",
+  },
+  {
+    id: "D-0011",
+    name: "Benjamin Lee",
+    licenseNumber: "LIC-100011",
+    phone: "+355 690 111 211",
+    email: "benjamin.lee@fleetco.test",
+    status: "ACTIVE",
+  },
+  {
+    id: "D-0012",
+    name: "Charlotte Walker",
+    licenseNumber: "LIC-100012",
+    phone: "+355 690 112 212",
+    email: "charlotte.walker@fleetco.test",
     status: "ACTIVE",
   },
 ];

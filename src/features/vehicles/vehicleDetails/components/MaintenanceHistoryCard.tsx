@@ -108,7 +108,7 @@ export default function MaintenanceHistoryCard({
 
               return (
                 <div key={r.id} className="relative">
-                  <div className="absolute -left-[3px] top-2 h-3 w-3 rounded-full bg-white ring-2 ring-slate-300" />
+                  <div className="absolute top-2 h-3 w-3 rounded-full bg-white ring-2 ring-slate-300" />
 
                   <div className="rounded-xl border bg-white p-4">
                     <div className="flex items-center justify-between gap-3">

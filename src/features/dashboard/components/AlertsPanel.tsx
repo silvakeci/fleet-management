@@ -9,12 +9,14 @@ export default function AlertsPanel({
   data: DashboardData;
   onGoVehicles: (to: string) => void;
 }) {
+  const overdueCount = data.overdue?.length ?? 0;
+  const dueSoonCount = data.dueSoon?.length ?? 0;
+
   return (
     <Card className="p-6 space-y-4">
       <SectionTitle title="Alerts & Notifications" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 🔴 Overdue Maintenance */}
         <Card
           className="p-5 bg-rose-50 border-rose-200 cursor-pointer hover:shadow-sm"
           onClick={() => onGoVehicles("/vehicles?service=overdue")}
@@ -25,9 +27,11 @@ export default function AlertsPanel({
               <div className="text-sm text-rose-800 font-semibold">
                 Overdue Maintenance
               </div>
+
               <div className="text-2xl font-semibold mt-1 text-rose-900">
-                {data.overdueMaintenance.toLocaleString()}
+                {overdueCount.toLocaleString()}
               </div>
+
               <div className="text-xs text-rose-700 mt-1">
                 Requires immediate attention
               </div>
@@ -39,7 +43,6 @@ export default function AlertsPanel({
           </div>
         </Card>
 
-        {/* 🟡 Service Due Soon */}
         <Card
           className="p-5 bg-amber-50 border-amber-200 cursor-pointer hover:shadow-sm"
           onClick={() => onGoVehicles("/vehicles?service=dueSoon")}
@@ -50,9 +53,11 @@ export default function AlertsPanel({
               <div className="text-sm text-amber-900 font-semibold">
                 Service Due Soon
               </div>
+
               <div className="text-2xl font-semibold mt-1 text-amber-950">
-                {data.vehiclesServiceSoon.toLocaleString()}
+                {dueSoonCount.toLocaleString()}
               </div>
+
               <div className="text-xs text-amber-800 mt-1">
                 Due within 30 days
               </div>

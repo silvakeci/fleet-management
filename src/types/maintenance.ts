@@ -12,10 +12,9 @@ export type MaintenanceRecord = {
   scheduledDate: string; 
   serviceType: MaintenanceServiceType;
   status: MaintenanceStatus;
-
-  cost?: number;
-  mileageAtService?: number;
-  technician?: string;
+  cost: number;
+  mileageAtService: number;
+  technician: string;
   notes?: string;
   completedDate?: string; 
 };

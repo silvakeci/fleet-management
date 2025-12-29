@@ -127,6 +127,7 @@ const driversSlice = createSlice({
       if (open) open.to = today;
     },
   },
+  
   extraReducers: (builder) => {
     builder
       .addCase(fetchDrivers.pending, (state) => {

@@ -1,109 +1,214 @@
 import type { Vehicle } from "../../types/vehicle";
-import { getVehicleAssignmentHistory } from "../vehicles/vehicleDetails/mock/getVehicleAssignmentHistory";
-
-function vehicleLabel(v: Vehicle) {
-  return `${v.make} ${v.model} · ${v.id}`;
-}
-
-export type RecentAssignment = {
-  vehicleId: string;
-  vehicleLabel: string;
-  driverName: string;
-  date: string; 
-};
+import type { Driver } from "../../types/driver";
+import type { MaintenanceRecord } from "../../types/maintenance";
 
 export type DashboardData = {
-  totalVehicles: number;
-  activeVehicles: number;
-  maintenanceVehicles: number;
-  retiredVehicles: number;
+  // summary counts
+  total: number;
+  active: number;
+  maint: number;
+  retired: number;
 
-  vehiclesServiceSoon: number;  
-  overdueMaintenance: number;    
+  // service alerts based on lastServiceDate
+  dueSoon: Vehicle[];
+  overdue: Vehicle[];
 
-  totalFleetMileage: number;
-  averageVehicleAge: number;
+  // quick stats
+  totalMileage: number;
+  avgAge: number;
   monthlyMaintenanceCost: number;
 
-  last5VehiclesAdded: Vehicle[];
-  recentAssignments: RecentAssignment[];
+  // recent activity
+  lastAdded: Vehicle[];
+  recentMaintenance: Array<{
+    id: string;
+    vehicleId: string;
+    make: string;
+    model: string;
+    date: string;
+    serviceType: string;
+    mileageAtService: number;
+    cost: number;
+  }>;
+  recentAssignments: Array<{
+    id: string;
+    vehicleId: string;
+    make: string;
+    model: string;
+    driverId: string;
+    driverName: string;
+    from: string;
+    to?: string;
+  }>;
 };
 
-export function computeDashboardData(vehicles: Vehicle[]): DashboardData {
-  const nowYear = new Date().getFullYear();
+function daysBetween(aISO: string, bISO: string) {
+  const a = new Date(aISO);
+  const b = new Date(bISO);
+  const ms = b.getTime() - a.getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
 
-  const totalVehicles = vehicles.length;
-  const activeVehicles = vehicles.filter((v) => v.status === "ACTIVE").length;
-  const maintenanceVehicles = vehicles.filter((v) => v.status === "MAINTENANCE").length;
-  const retiredVehicles = vehicles.filter((v) => v.status === "RETIRED").length;
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-  const daysSinceService = (dateStr?: string) => {
-    if (!dateStr) return null;
-    const t = new Date(dateStr).getTime();
-    if (Number.isNaN(t)) return null;
-    const days = (Date.now() - t) / (1000 * 60 * 60 * 24);
-    return Math.floor(days);
-  };
+function safeNumber(n: unknown, fallback = 0) {
+  return typeof n === "number" && Number.isFinite(n) ? n : fallback;
+}
 
-  const vehiclesServiceSoon = vehicles.filter((v) => {
-    const days = daysSinceService(v.lastServiceDate);
-    if (days === null) return false;
-    return days >= 335 && days < 365;
-  }).length;
+function pickLast5ByIdDesc<T extends { id: string }>(items: T[]) {
+  // Works for ids like V-0001... V-0360
+  const num = (id: string) => Number(id.replace(/\D/g, "")) || 0;
+  return [...items].sort((a, b) => num(b.id) - num(a.id)).slice(0, 5);
+}
 
-  const overdueMaintenance = vehicles.filter((v) => {
-    const days = daysSinceService(v.lastServiceDate);
-    if (days === null) return false;
-    return days >= 365;
-  }).length;
+/**
+ * ✅ Main dashboard selector builder (used by DashboardPage)
+ * Pass slices: vehicles, drivers, maintenance
+ */
+export function computeDashboardData(
+  vehicles: Vehicle[],
+  drivers: Driver[],
+  maintenance: MaintenanceRecord[]
+): DashboardData {
+  const total = vehicles.length;
+  const active = vehicles.filter((v) => v.status === "ACTIVE").length;
+  const maint = vehicles.filter((v) => v.status === "MAINTENANCE").length;
+  const retired = vehicles.filter((v) => v.status === "RETIRED").length;
 
-  const totalFleetMileage = vehicles.reduce((acc, v) => acc + (v.currentMileage ?? 0), 0);
+  // Due soon / overdue based on lastServiceDate
+  const today = todayISO();
+  // Example policy:
+  // - due soon = last service was 335+ days ago (within ~30 days of yearly service)
+  // - overdue = last service was 365+ days ago
+  const dueSoon = vehicles.filter((v) => {
+    const d = v.lastServiceDate;
+    if (!d) return false;
+    const age = daysBetween(d, today);
+    return age >= 335 && age < 365;
+  });
 
-  const averageVehicleAge =
-    vehicles.length === 0
+  const overdue = vehicles.filter((v) => {
+    const d = v.lastServiceDate;
+    if (!d) return false;
+    const age = daysBetween(d, today);
+    return age >= 365;
+  });
+
+  // Quick stats
+  const totalMileage = vehicles.reduce((sum, v) => sum + safeNumber(v.currentMileage, 0), 0);
+
+  const currentYear = new Date().getFullYear();
+  const avgAge =
+    total === 0
       ? 0
-      : vehicles.reduce((acc, v) => acc + Math.max(0, nowYear - v.year), 0) / vehicles.length;
+      : Math.round(
+          vehicles.reduce((sum, v) => sum + (currentYear - safeNumber(v.year, currentYear)), 0) / total
+        );
 
-  const monthlyMaintenanceCost = 12000 + (totalVehicles % 13) * 380;
+  // Monthly maintenance cost from COMPLETED records in last 30 days
+  const monthlyMaintenanceCost = maintenance
+    .filter((m) => m.status === "COMPLETED" && (m.completedDate || m.scheduledDate))
+    .filter((m) => {
+      const date = (m.completedDate || m.scheduledDate) as string;
+      const age = daysBetween(date, today);
+      return age >= 0 && age <= 30;
+    })
+    .reduce((sum, m) => sum + safeNumber(m.cost, 0), 0);
 
-  const last5VehiclesAdded = [...vehicles]
-    .sort((a, b) => b.id.localeCompare(a.id))
-    .slice(0, 5);
+  // Recent vehicles added (approx by highest ID)
+  const lastAdded = pickLast5ByIdDesc(vehicles);
 
-  const recentAssignments: RecentAssignment[] = (() => {
-    const all: RecentAssignment[] = [];
+  // Recent maintenance (latest 5)
+  const recentMaintenance = [...maintenance]
+    .filter((m) => m.status === "COMPLETED")
+    .sort((a, b) => {
+      const da = (a.completedDate || a.scheduledDate || "").toString();
+      const db = (b.completedDate || b.scheduledDate || "").toString();
+      return db.localeCompare(da);
+    })
+    .slice(0, 5)
+    .map((m) => {
+      const v = vehicles.find((x) => x.id === m.vehicleId);
+      return {
+        id: m.id,
+        vehicleId: m.vehicleId,
+        make: v?.make ?? "Unknown",
+        model: v?.model ?? "",
+        date: (m.completedDate || m.scheduledDate || "").toString(),
+        serviceType: m.serviceType,
+        mileageAtService: safeNumber(m.mileageAtService, 0),
+        cost: safeNumber(m.cost, 0),
+      };
+    });
 
-    for (const v of vehicles) {
-      const hist = getVehicleAssignmentHistory(v);
-      const latest = hist[0]; 
-      if (!latest) continue;
+  // Recent assignments based on drivers assignment history if you have it.
+  // If you *don’t* store history yet, this falls back to current assignments.
+  const recentAssignments = (() => {
+    // If your Driver type later includes assignmentHistory, this will use it
+    const anyWithHistory = (drivers as any[]).some((d) => Array.isArray(d.assignmentHistory));
+    if (anyWithHistory) {
+      const all = (drivers as any[]).flatMap((d) =>
+        (d.assignmentHistory as any[]).map((h) => ({
+          driverId: d.id,
+          driverName: d.name,
+          ...h,
+        }))
+      );
 
-      all.push({
-        vehicleId: v.id,
-        vehicleLabel: vehicleLabel(v),
-        driverName: latest.driverName,
-        date: latest.from,
-      });
+      return all
+        .sort((a, b) => (b.from || "").localeCompare(a.from || ""))
+        .slice(0, 5)
+        .map((a) => {
+          const v = vehicles.find((x) => x.id === a.vehicleId);
+          return {
+            id: a.id,
+            vehicleId: a.vehicleId,
+            make: v?.make ?? "Unknown",
+            model: v?.model ?? "",
+            driverId: a.driverId,
+            driverName: a.driverName,
+            from: a.from,
+            to: a.to,
+          };
+        });
     }
 
-    all.sort((a, b) => b.date.localeCompare(a.date));
-    return all.slice(0, 5);
+    // fallback: use current assignments (still “real time”)
+    const current = drivers
+      .filter((d) => (d.assignedVehicleIds?.[0] ? true : false))
+      .map((d) => {
+        const vehicleId = d.assignedVehicleIds[0];
+        const v = vehicles.find((x) => x.id === vehicleId);
+        return {
+          id: `A-${d.id}-${vehicleId}`,
+          vehicleId,
+          make: v?.make ?? "Unknown",
+          model: v?.model ?? "",
+          driverId: d.id,
+          driverName: d.name,
+          from: today, // unknown without history, so use today
+          to: undefined,
+        };
+      })
+      .slice(0, 5);
+
+    return current;
   })();
 
   return {
-    totalVehicles,
-    activeVehicles,
-    maintenanceVehicles,
-    retiredVehicles,
-
-    vehiclesServiceSoon,
-    overdueMaintenance,
-
-    totalFleetMileage,
-    averageVehicleAge,
+    total,
+    active,
+    maint,
+    retired,
+    dueSoon,
+    overdue,
+    totalMileage,
+    avgAge,
     monthlyMaintenanceCost,
-
-    last5VehiclesAdded,
+    lastAdded,
+    recentMaintenance,
     recentAssignments,
   };
 }
